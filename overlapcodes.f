@@ -1,4 +1,7 @@
       module overlapcodes
+      implicit none 
+      contains
+
         ! Overlap codes  from 
         !Quintela Matos, I. & Escobedo, F. 
         !Congruent phase behavior of a binary compound crystal of colloidal spheres 
@@ -10,9 +13,9 @@
         subroutine check(rsq,i,j,itypei,itypej,flag,dscmin)
         include 'parameters.h'
         include 'coords.h'
-        integer i,j,flag,p,s,itypei,itypej,flagc,flag1
+        integer i,j,flag,p,s,itypei,itypej
         double precision sepaxis(3),dscmin,rsq
-        double precision vectora(3,6),vectorb(3,6)
+        
     
         !overlap check between cube-sphere and cube-cube   
         dscmin = 0.0
@@ -66,7 +69,7 @@
         !
         include 'parameters.h'
         include 'coords.h'
-        integer k,flag,flag2,i,j,itypei,itypej
+        integer k,flag,i,j,itypei,itypej
         double precision dsq,dscmin,rsqsc
         double precision ald(3)
         !i cube index
@@ -77,8 +80,8 @@
         dsq =0.0d0
         !dsq=squared distance between cube and sphere
         do k =1,3
-           ald(k) = abs(axes(1,k,i)*rij(k)+axes(2,k,i)*rij(k)
-     &     +axes(3,k,i)*rij(k))
+           ald(k) = abs(axes(1,k,i)*tt(k)+axes(2,k,i)*tt(k)
+     &     +axes(3,k,i)*tt(k))
            if (ald(k).gt.1.0)then
             dsq = dsq + (ald(k)-1.0)*(ald(k)-1.0)
            endif
@@ -130,8 +133,6 @@
         P(:) = rt(:)
         ri(:) = 0.0d0
         call calcvertice(ri,ipart,V)
-        
-
         do i=1,6
          dx = P(1)-V(i,1)
          dy = P(2)-V(i,2)
@@ -151,7 +152,7 @@
         if(dist(1).lt.roversqh22) return
 
         call pointTriangleDistance(V(nlist(1),:),V(nlist(2),:)
-     &   ,V(nlist(3),:) ,P,dist2,PP0,dscmin,dist(1))
+     &   ,V(nlist(3),:) ,P,dist2,PP0,dscmin)
 
         if(dist2.gt.roversqh22) then
                 flag = 1
@@ -185,11 +186,51 @@
 cc          write(6,*) 'dist=',dist2,roversqh22
          
          END
+        subroutine test(sepaxis,i,j,flag)
+        include 'parameters.h'
+        include 'coords.h'
+        integer flag,i,j
+        integer itypei,itypej
+        double precision sepaxis(3)
+        double precision tl,a1l,a2l,a3l,b1l,b2l,b3l
+        
        
+        flag=0
+        !tl-projection of r on  direction of sepaxis
+        !sepaxis axis of one paraticle on a specific direction (x,y,z)
+        tl=tt(1)*sepaxis(1)+tt(2)*sepaxis(2)+tt(3)*sepaxis(3)
+        a1l=axes(1,1,i)*sepaxis(1)+axes(2,1,i)*sepaxis(2)+
+     &  axes(3,1,i)*sepaxis(3)
+        a2l=axes(1,2,i)*sepaxis(1)+axes(2,2,i)*sepaxis(2)+
+     &  axes(3,2,i)*sepaxis(3)
+        a3l=axes(1,3,i)*sepaxis(1)+axes(2,3,i)*sepaxis(2)+
+     &  axes(3,3,i)*sepaxis(3)
+        a1l=abs(a1l)
+        a2l=abs(a2l)
+        a3l=abs(a3l)
+        b1l=axes(1,1,j)*sepaxis(1)+axes(2,1,j)*sepaxis(2)+
+     &  axes(3,1,j)*sepaxis(3)
+        b2l=axes(1,2,j)*sepaxis(1)+axes(2,2,j)*sepaxis(2)+
+     &  axes(3,2,j)*sepaxis(3)
+        b3l=axes(1,3,j)*sepaxis(1)+axes(2,3,j)*sepaxis(2)+
+     &  axes(3,3,j)*sepaxis(3)
+        b1l=abs(b1l)
+        b2l=abs(b2l)
+        b3l=abs(b3l)
+    
+        tl=abs(tl)
+    
+    
+        if (tl.ge.(a1l+a2l+a3l+b1l+b2l+b3l)) then
+            flag=1
+            return
+        endif
+      end
+        
 		subroutine cubeoverlap(i,j,flag)
 		include 'parameters.h'
 		include 'coords.h'
-		integer flag, i, j,c1,c2,floc,ii,jj,ll,k
+		integer flag, i, j,c1,c2,floc,ii,jj,k
 		double precision vert2(3),vertji(3),vertij(3)
 		double precision dij,dji,distf(6),f1(4,3),qcf(3)
 		double precision verts1(8,3),faces1(6,4,3),cfaces1(6,3)
@@ -197,7 +238,7 @@ cc          write(6,*) 'dist=',dist2,roversqh22
         double precision vertsj(8,3),facesj(6,4,3),cfacesj(6,3)
 		double precision lineoi(3,3),lineoj(3,3),distest(3),divt(3)
 		double precision lineorigin(3,3),dins(3),dins2(3)
-		double precision midv2,madv2,midv3,madv3,midv1,madv1
+		
 		flag = 0
 		!distance between vertice of i closest to the center of j and center oj j
 
@@ -249,7 +290,7 @@ cc          write(6,*) 'dist=',dist2,roversqh22
 		 	enddo
 		 	distf(ii) = qcf(1)**2+ qcf(2)**2+qcf(3)**2
 		enddo
-		floc = minloc(distf,integer)
+		floc = minloc(distf,DIM=1)
 		f1 = faces1(floc,:,:)
 		distest = q(:,c1) - vert2(:)
         do jj=1,3
@@ -284,9 +325,9 @@ cc          write(6,*) 'dist=',dist2,roversqh22
        subroutine vertice(i,j,dij,minvert,verts,faces,cfaces,lineorigin)
        include 'parameters.h'
        include 'coords.h'
-       integer  i, j,ploc,ll,k
-       double precision verts(8,3),dist(8),qv(3)
-       double precision vt(3),rsqv(8),minvert(3)
+       integer  i, j,ll,k,l
+       double precision verts(8,3),qv(3)
+       double precision rsqv(8),minvert(3)
        double precision faces(6,4,3),cfaces(6,3)
        double precision uv(8,3),lineorigin(3,3)
         !This subroutine calculate the 8 vertices of a cube and then finds
@@ -332,7 +373,7 @@ cc          write(6,*) 'dist=',dist2,roversqh22
         rsqv(k) = qv(1)**2+qv(2)**2+qv(3)**2
       enddo
       dij = minval(rsqv)
-      ploc = minloc(rsqv,integer)
+      ploc = minloc(rsqv, DIM=1)
       minvert(:) = verts(ploc,:)
       ll = 1
       do k=1,8
@@ -345,10 +386,131 @@ cc          write(6,*) 'dist=',dist2,roversqh22
       return
       end
 
+      subroutine planeline(c1,plane,cplane,line,vert2,flag)
+      include 'parameters.h'
+      include 'coords.h'
+      double precision plane(4,3),line(3,3),cplane(3)
+      double precision qc(3),rc(3),normal(3),intersection(3,3)
+      double precision origin,direction(3,3),vert2(3)
+      double precision df(3),dist(3),qf(3)
+      double precision isin1(3),isin2(3)
+      double precision dotis
+      integer i,flag,j,c1
+        flag=0
+        qc = plane(1,:) - cplane
+        rc = plane(2,:) - cplane
+        do i=1,3
+            rc(i) =DMIN3(rc(i))
+            qc(i) =DMIN3(qc(i))
+        enddo
+
+        normal(1) = qc(2)*rc(3) - qc(3)*rc(2)
+        normal(2) = -qc(1)*rc(3)+qc(3)*rc(1)
+        normal(3) = qc(1)*rc(2) -qc(2)*rc(1)
+        origin = -normal(1)*cplane(1)-normal(2)*cplane(2)-
+     &   normal(3)*cplane(3)
+   
+        do i=1,3
+        direction(i,:) =vert2 - line(i,:)
+        direction(i,1) =DMIN3(direction(i,1))
+        direction(i,2) =DMIN3(direction(i,2))
+        direction(i,3) =DMIN3(direction(i,3))
+
+        dmintor = direction(i,1)*normal(1)+
+     &  direction(i,2)*normal(2)+
+     &  direction(i,3)*normal(3)
+
+        if (abs(dmintor)<(1e-5)) then
+            flag = 0
+            return
+        else
+            t = -line(i,1)*normal(1)-line(i,2)*normal(2) 
+     &   -line(i,3)*normal(3) - origin
+            t = t/dmintor
+           intersection(i,:) = line(i,:) + t*direction(i,:)
+        endif
+    !check if intersection is between vert2 and line
+        isin1 = intersection(i,:) - line(i,:)
+        isin2 = vert2 - intersection(i,:)
+        dotis=isin1(1)*isin2(1)+isin1(2)*isin2(2)+
+     &  isin1(3)*isin2(3)
+        if (dotis>0) then
+          df = intersection(i,:) - cplane
+          df(1) =DMIN3(df(1))
+          df(2) =DMIN3(df(2))
+          df(3) =DMIN3(df(3))
+          do j =1,3
+           qf(j)=HN(j,1)*df(1)+HN(j,2)*df(2)+HN(j,3)*df(3)
+          enddo
+          dist(i) = qf(1)*qf(1)+qf(2)*qf(2)+qf(3)*qf(3)
+          if (dist(i)<dhsq) then
+             flag=1
+             return
+          endif
+       else
+        flag = 0
+        return
+       endif
+      enddo
+        return
+      end
+
+
+      subroutine pointrectangle(c1,plane,point,dprsq)
+      include 'parameters.h'
+      include 'coords.h'
+      double precision plane(4,3),point(3),dprsq,qt(3)
+      double precision e1(3),e0(3),drec(3)
+      integer j,c1
+        e0 = plane(2,:) - plane(3,:)
+        e1 = plane(4,:) - plane(3,:)
+        drec = point - plane(3,:)
+        do j=1,3
+            drec(j) = DMIN3(drec(j))
+        enddo
+        srec = e0(1)*drec(1) + e0(2)*drec(2) + e0(3)*drec(3)
+        if (srec>0) then
+            dot0 = e0(1)*e0(1) + e0(2)*e0(2) + e0(3)*e0(3)
+            if (srec<dot0) then
+                drec = drec -(srec/dot0)*e0
+            else
+                drec = drec - e0
+            endif
+        endif
+        trec = e1(1)*drec(1) + e1(2)*drec(2) + e1(3)*drec(3)
+        if (trec>0) then
+            dot1 = e1(1)*e1(1) + e1(2)*e1(2) + e1(3)*e1(3)
+            if (trec<dot1) then
+                drec = drec -(trec/dot1)*e1
+            else
+                drec = drec - e1
+            endif
+        endif
+        drec(1) = DMIN3(drec(1))
+        drec(2) = DMIN3(drec(2))
+        drec(3) = DMIN3(drec(3))
+
+        do j =1,3
+        qt(j)=HN(j,1)*drec(1)+HN(j,2)*drec(2)+HN(j,3)*drec(3)
+        enddo
+        a1l=axes(1,1,c1)*qt(1)+axes(2,1,c1)*qt(2)
+     &   +axes(3,1,c1)*qt(3)
+        a2l=axes(1,2,c1)*qt(1)+axes(2,2,c1)*qt(2)
+     &   +axes(3,2,c1)*qt(3)
+        a3l=axes(1,3,c1)*qt(1)+axes(2,3,c1)*qt(2)
+     &   +axes(3,3,c1)*qt(3)
+
+            a1l = abs(a1l)
+            a2l = abs(a2l)
+            a3l = abs(a3l)
+            dprsq = max(a1l,a2l,a3l)
+            dprsq = dprsq*dprsq
+        return
+      end
       subroutine issquare(verts,faces,cfaces)
        include 'parameters.h'
        include 'coords.h'
-       integer  i, k,ploc
+       integer  i, k,m,j
        double precision verts(8,3),dist(8),distx(3,3)
        double precision faces(6,4,3),cfaces(6,3)
        double precision xx(3,3),qx(3),yy(3,3),diag2
@@ -408,25 +570,25 @@ cc          write(6,*) 'dist=',dist2,roversqh22
         return
        end
 
-      subroutine crossprod(cross,a, b)
-            double precision cross(3)
-            double precision a(3), b(2)
-          
-            cross(1) = a(2) * b(3) - a(3) * b(2)
-            cross(2) = a(3) * b(1) - a(1) * b(3)
-            cross(3) = a(1) * b(2) - a(2) * b(1)
-      return
-      END 
+       subroutine crossp(a,b,c)
+
+        double precision a(3),b(3),c(3)
+            c(1)=a(2)*b(3)-a(3)*b(2)
+            c(2)=b(1)*a(3)-a(1)*b(3)
+            c(3)=a(1)*b(2)-a(2)*b(1)
+        return
+        end
 
       subroutine pointTriangleDistance(B0,B1,B2,P,sqrdistance
-        & ,PP0,dscmin,minv)
+     & ,PP0,dscmin)
           include 'parameters.h'
           include 'coords.h'
           integer iI
-          double precision TRI(3,3),P(3),ri(3)
+          double precision P(3),invDet
           double precision sqrdistance, PP0(3),dscmin
           double precision B0(3),E0(3),E1(3),D0(3)
-          double precision B1(3),B2(3),rt(3)
+          double precision B1(3),B2(3)
+          double precision numer
         
           DO II=1,3
           E0(II) = B1(II) - B0(II)
@@ -439,17 +601,7 @@ cc          write(6,*) 'dist=',dist2,roversqh22
           d = E0(1)*D0(1)+E0(2)*D0(2)+E0(3)*D0(3)
           e = E1(1)*D0(1)+E1(2)*D0(2)+E1(3)*D0(3)
           f = D0(1)*D0(1)+D0(2)*D0(2)+D0(3)*D0(3)
-   !        if (f==0) then
-   !         WRITE(*,*) DMIN3(B1 - B0)*HN(1,1)
-   !         WRITE(*,*) B1 - B0
-   !         WRITE(*,*) B0-P
-   !         WRITE(*,*) HN(1,1)
-   !         PAUSE
-   !         dscmin=minv
-   !         sqrdistance=minv
-   !         PP0 = BO
-   !         RETURN
-   !        endif
+
           det = a * c - b * b
           s = b * e - c * d
           t = b * d - a * e
@@ -604,12 +756,7 @@ cc          write(6,*) 'dist=',dist2,roversqh22
          u3r2 = u3x**2 + u3y**2 + u3z**2
          dotur = tt(1)*u3x + tt(2)*u3y + tt(3)*u3z
          dscmin = dotur**2/u3r2
-      
-         !if (dscmin <0) then
-         !  write(*,*) dscmin
-         !  write(*,*) sqrdistance
-         !endif
-         !WRITE(*,*) dotur**2,u3r2,'DLAT'
+ 
            return
           END
 
@@ -637,24 +784,27 @@ cc          write(6,*) 'dist=',dist2,roversqh22
           END
     
           subroutine sortindex(NARRAY,ARRAY,sorted)
-            INTEGER sorted(NARRAY),ii,jj
-            real*8  ARRAY(NARRAY)
+            integer NARRAY
+            INTEGER sorted(NARRAY),ii,j,nlj
+            real*8  ARRAY(NARRAY),r2
           
             do j=2,NARRAY
               r2 = ARRAY(j)
               nlj = sorted(j) 
               do ii=j-1,1,-1
-                if(ARRAY(ii).le.r2) goto 10
+                if(ARRAY(ii).le.r2) then
+                    ARRAY(ii+1) = r2
+                endif
                 ARRAY(ii+1)=ARRAY(ii)
                 sorted(ii+1) = sorted(ii)
               end do
               ii=0
-       10        ARRAY(ii+1) = r2
+             
               sorted(ii+1)=nlj
              end do
              return
             end
-            FUNCTION TO CALCULATE MINIMUM IMAGE DISTANCES
+           ! FUNCTION TO CALCULATE MINIMUM IMAGE DISTANCES
                 REAL*8 FUNCTION DMIN3(XX)
                 IMPLICIT REAL*8(A-H,O-Z)
           
@@ -667,6 +817,14 @@ cc          write(6,*) 'dist=',dist2,roversqh22
           
                 RETURN
                 END
-
-  
-     end module overlapcodes
+                REAL*8 FUNCTION distver(ad,bd)
+                IMPLICIT REAL*8(A-H,O-Z)
+                                  double precision ad(3),bd(3)
+            
+                  dx = ad(1) - bd(1)
+                  dy = ad(2) - bd(2)
+                  dz = ad(3) - bd(3)
+                  distver = dx**2 + dy**2 + dz**2
+                  return 
+               END
+      end module overlapcodes
